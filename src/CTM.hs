@@ -157,35 +157,9 @@ rightRotate = M.fromList
 invert:: Matrix Float
 invert = M.fromList
   [ [-1.0, 0.0, 1.0]
-  , [ 0.0,-1.0, 0.0]
+  , [ 0.0,-1.0, 1.0]
   , [ 0.0, 0.0, 1.0]
   ]
-
-
--- | translate size m
--- translates negative coordinates (in 3x1 matrix form) to positive
--- ie: size=(800,600) m = [[-200],[-100],[1]] = [[600],[500],[1]]
-translate
-  :: Geometry
-  -> Matrix Float
-  -> Matrix Float
-translate (Geometry w h) (M r c el) 
-  | r /= 3 || c /= 1 = error "translate is only should be used for point coordinate matrix"
-  | otherwise = newm
-    where
-      x = V.head $ el ! 0
-      y = V.head $ el ! 1
-      newx = if x < 0
-               then w + x
-               else x
-      newy = if y < 0
-               then h + y
-               else y
-      newm = M.fromList
-        [ [newx]
-        , [newy]
-        , [1]
-        ]
 
 
 matrixes:: [(Text, Matrix Float)]
@@ -240,49 +214,63 @@ findClosestTransform
   -> [Point2]
   -> Maybe ( [Text]
            , Matrix Float
-           , [Point2]
            )
 findClosestTransform g@(Geometry w h) points = 
     case findTheBestOption totalOptions of
       [] -> Nothing
-      ((names, mat, pointsM ):_) -> Just (names, mat, P.map matToPoint pointsM)
+      ((names, mat):_) -> Just (names, mat)
   where
-    totalOptions = normalTry P.++ swappedTry
-    normalTry = check ["normal"] normal points 
-    swappedTry = check ["inverted"] invert swappedPoints
-    swappedPoints = P.map matToPoint $ P.map (translate g . matProduct invert) $ P.map pointToMat points
+    totalOptions = normalTry P.++ invertedTry
+    normalTry = check ["normal"] normal 
+    invertedTry = check ["inverted"] invert
     findTheBestOption options = P.foldl' helper [] options
-    helper [] (name, mat, pointsM) = [(name, mat, pointsM)]
-    helper same@(( cname, cmat, cpointsM):_) (name, mat, pointsM) 
+    helper [] (name, mat) = [(name, mat)]
+    helper same@(( cname, cmat):_) (name, mat) 
       | P.all (\(l, r)-> l < r) diffs = same
-      | otherwise = [(name, mat, pointsM)]
+      | otherwise = [(name, mat)]
       where
         diffs = P.zipWith (,) cdiff diff
-        cdiff = getCornersDiffs g cpoints
-        diff = getCornersDiffs g points
-        cpoints = P.map matToPoint cpointsM
-        points = P.map matToPoint pointsM
-    check names matrix points = findTheBestOption correctOrientation
+        cdiff = getCornersDiffs g ctpoints
+        diff = getCornersDiffs g tpoints
+        ctpoints = P.map (translatePoint g cmat) points
+        tpoints = P.map (translatePoint g mat) points
+    check names matrix = findTheBestOption correctOrientation
       where
-        pointsM = P.map pointToMat points
-        options = P.map (\(name,mat)-> (name:names, matProduct matrix mat, P.map (matProduct mat) pointsM)) matrixes
-        correctOrientation = P.filter (\( _, _, cpointsM)-> isCorrectOrientation g (P.map matToPoint cpointsM)) options
+        options = P.map (\(name,mat)-> (name:names, matProduct matrix mat)) matrixes
+        correctOrientation = P.filter (\( _, mat)-> isCorrectOrientation g (P.map (translatePoint g mat) points)) options
 
-
-pointToMat
-  :: Point2
+translatePoint
+  :: Geometry
   -> Matrix Float
-pointToMat (Point2 x y) = M.fromList [[x],[y],[1]]
+  -> Point2
+  -> Point2
+translatePoint g@(Geometry w h) m p = scalePoint g tnpoint
+  where
+    (Point2 nx ny) = normalizePoint g p
+    pointM = M.fromList [[nx], [ny], [1]]
+    tnpoint = matToPoint $ matProduct m pointM
 
 matToPoint
   :: Matrix Float
   -> Point2
-matToPoint (M r c el) 
-  | r /= 3 && c /= 1 = error "only 3x1 matrix can be converted to point2"
+matToPoint (M r c els)
+  | r /= 3 || c /= 1 = error "matToPoint only can be applied to 3x1"
   | otherwise = Point2 x y
     where
-      x = V.head $ el V.! 0
-      y = V.head $ el V.! 1
+      x = V.head $ els V.! 0
+      y = V.head $ els V.! 1
+
+normalizePoint
+  :: Geometry
+  -> Point2
+  -> Point2
+normalizePoint (Geometry w h) (Point2 x y) = Point2 (x/w) (y/h)
+
+scalePoint
+  :: Geometry
+  -> Point2
+  -> Point2
+scalePoint (Geometry w h) (Point2 x y) = Point2 (x*w) (y*h)
 
 calibrateMatrix
   :: Geometry
@@ -291,7 +279,7 @@ calibrateMatrix
   -> Point2
   -> Matrix Float
 calibrateMatrix g@(Geometry w h) 
-                p0@(Point2 x0 y0) 
+                p0@(Point2 x0' y0') 
                 p1@(Point2 x1 _)
                 p2@(Point2 _ y1) = M.fromList
   [ [c0, 0, c1]
@@ -303,12 +291,22 @@ calibrateMatrix g@(Geometry w h)
                      | otherwise = w
       touchAreaHeight | diff_y > 0.2 = y1 - y0
                       | otherwise = h
-      c0 = touchAreaWidth / w
-      c1 = x / w
-      c2 = touchAreaHeight / h
-      c3 = y / h
+      c0 | touchAreaWidth < w = 1 + touchAreaWidth / w
+         | touchAreaWidth == w = 1
+         | otherwise = 1 - touchAreaWidth / w
+      c1 | x == 0 = 0
+         | touchAreaWidth > w = x / w
+         | otherwise = 1 + x / w
+      c2 | touchAreaHeight < h = 1 + touchAreaHeight / h
+         | touchAreaHeight == h = 1
+         | otherwise = 1 - touchAreaHeight / h
+      c3 | y == 0 = 0
+         | touchAreaHeight > h = y / h
+         | otherwise = 1 + y / h
       block_w = w / 8
       block_h = h / 8
+      x0 = min x0' x1
+      y0 = min y0' y1
       diff_x = (max block_w x0 - min block_w x0) / block_w
       diff_y = (max block_h y0 - min block_h y0) / block_h
       x | diff_x > 0.2 = x0
@@ -328,10 +326,12 @@ guessCoordinateMatrixTransform
 guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = do
     when ( mClosestTransform == Nothing) $ 
       throwM ENoTransformMatrixFound
-    let Just (matrixNames,transformM, newpoints) = mClosestTransform
-        (x0:x1:x2:x3:_) = newpoints
+    let Just (matrixNames,transformM) = mClosestTransform
+        (x0:x1:x2:x3:_) = P.map (translatePoint g transformM) points
         calibrateM = calibrateMatrix g x0 x1 x2
-        result = matProduct transformM calibrateM
+        result' = matProduct calibrateM transformM
+        result = matSetEl 1 2 (matGetEl 1 2 calibrateM) 
+          $ matSetEl 0 2 (matGetEl 0 2 calibrateM) result'
     debug $ "those transformations had been applied " `T.append` (T.pack $ show matrixNames)
     return result
     where

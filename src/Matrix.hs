@@ -62,3 +62,33 @@ instance (Show a)=> Show (Matrix a) where
     show m = show els
       where
         els = P.map V.toList $ V.toList  $ mEls m
+
+
+matGetEl
+  :: Int
+  -> Int
+  -> Matrix a
+  -> a
+matGetEl row col (M r c els)
+  | r <= row || c <= col = error "matrix index out of bound"
+  | otherwise = V.head $ V.drop col $ V.head $ V.drop row els
+
+matSetEl
+  :: Int
+  -> Int
+  -> a 
+  -> Matrix a
+  -> Matrix a
+matSetEl row col val (M r c els)
+  | r <= row || c <= col = error "matrix index out of bound"
+  | otherwise = M r c newels
+  where
+    newels = (vhead `V.snoc` newrow) V.++ vtail
+    vhead = V.take row els
+    vtail | row == r - 1 = V.empty
+          | otherwise = V.take (r - row - 1) $ V.drop (row+1) els
+    oldrow = els V.! row
+    newrow = (rhead `V.snoc` val) V.++ rtail
+    rhead = V.take col oldrow
+    rtail = V.take (c-col-1) $ V.drop (col + 1) oldrow
+

@@ -14,8 +14,7 @@ import CTM
   , swapped
   , invert
   , matToPoint
-  , pointToMat
-  , translate
+  , translatePoint
   )
 \end{code}
 
@@ -92,20 +91,12 @@ inversion; 2. swapped axes; 3. touch's coordinates are misscaled.
 \begin{code}
 test2 = it "inversion, swap and scale" $ do
   let matrix = runTestEnv defWorld $ guessCoordinateMatrixTransform g points
-  matrix `shouldReturn` (matProduct ( matProduct swapped invert) calibrate ) 
+  matrix `shouldReturn` result 
     where
+      points = [Point2 584 449, Point2 601 147, Point2 196 444, Point2 206 144]
 \end{code}
 
 calibrate matrix is folded from 1.1
-
-\begin{code}
-      calibrate = M.fromList
-        [ [ c0, 0, c1]
-        , [ 0, c2, c3]
-        , [ 0, 0, 1]
-        ]
-      points = [Point2 584 449, Point2 601 147, Point2 196 444, Point2 206 144]
-\end{code}
 
 The difficulty with inversioned coordinates is that we required to translate them
 first so they will be positive before doing swap. Otherwise, if we will be
@@ -117,20 +108,9 @@ Translation of coordinates is needed, because we need to work with real values,
 which are positive.
 
 \begin{code}
-      (p0:p1:p2:p3:_) = map matToPoint 
-                      $ map ( matProduct swapped
-                            . translate g 
-                            . matProduct invert 
-                            )
-                      $ map pointToMat points
-      Point2 x0 y0 = p0
-      Point2 x1 _ = p1
-      Point2 _ y1 = p2
+      (p0:p1:p2:p3:_) = map (translatePoint g (matProduct swapped invert)) points
       Geometry w h = g
-      c0 = (x1 - x0) / w
-      c2 = (y1 - y0) / h
-      c1 = x0 / w
-      c3 = y0 / h
+      result = M.fromList [[0.0,-1.5033333,1.2516667],[-1.485,0.0,1.27],[0.0,0.0,1.0]]
 \end{code}
 
 

@@ -89,10 +89,33 @@ test4 = it "should read 4 points from stdin" $ do
              ] 
 \end{code}
 
+2.3 matProduct
+
+test matrix multiplication
+
+\begin{code}
+test5 = it "matrix multiplication" $ do
+  matProduct matA matB `shouldBe` result
+  where
+    matA = M.fromList
+      [ [ 1, 2]
+      , [ 3, 4]
+      ]
+    matB = M.fromList
+      [ [ 2, 3]
+      , [ 4, 5]
+      ]
+    result = M.fromList 
+      [ [ 10, 13]
+      , [ 22, 29]
+      ]
+\end{code}
+
 \begin{code}
 spec = describe "CTM module tests" $ do
   test1
   test2
   test3
   test4
+  test5
 \end{code}
