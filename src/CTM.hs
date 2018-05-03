@@ -23,6 +23,7 @@ import Control.Monad as C
 import Data.Vector as V
 import Types
 import Interface
+import System.Process (shell)
 import Vector as V
 import Matrix as M
 
@@ -110,14 +111,14 @@ applyCTM
   -> Matrix Float
   -> m ()
 applyCTM name matrix = do
-    (code,out,err) <- readProcessWithExitCode "xinput"
-                      [ "set-prop"
-                      , name
-                      , "Coordinate Transformation Matrix"
-                      , matrixToXinputProp matrix
-                      ]
+    (code,out,err) <- readCreateProcessWithExitCode (shell $ T.unpack cmd)
                       ""
     when (code /= ExitSuccess) $ throwM EXInputFailed
+    where
+      cmd = "xinput set-prop \"" 
+        `T.append` name 
+        `T.append` "\" 'Coordinate Transformation Matrix' " 
+        `T.append` matrixToXinputProp matrix
 
 
 matrixToXinputProp

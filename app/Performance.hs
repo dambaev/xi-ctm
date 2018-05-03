@@ -29,6 +29,11 @@ instance RunsProcess IO where
         (P.map T.unpack args)
         (T.unpack input)
       return (code, T.pack outS, T.pack errS)
+    readCreateProcessWithExitCode cmd input = do
+      (code, outS, errS) <- IO.readCreateProcessWithExitCode 
+        cmd
+        (T.unpack input)
+      return (code, T.pack outS, T.pack errS)
 
 runPerformance = id
 
