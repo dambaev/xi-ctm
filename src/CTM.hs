@@ -71,11 +71,10 @@ extractDisplayGeometry lined = do
   debug $ "found resolution " `T.append` (T.pack $ show (w,h))
   return $ Geometry w h
   where
-    prefix = "default connected "
     outputFilter:: Text-> Text-> Text
     outputFilter tmp line 
-      | T.null tmp && prefix `isPrefixOf` line = 
-          T.takeWhile isAlphaNum $ T.drop (T.length prefix) line
+      | T.null tmp && "*" `isInfixOf` line = 
+          T.takeWhile isAlphaNum $ T.dropWhile (not . isDigit) line
     outputFilter tmp line = tmp
 
 extractPoints
