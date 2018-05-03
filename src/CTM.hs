@@ -274,19 +274,15 @@ scalePoint (Geometry w h) (Point2 x y) = Point2 (x*w) (y*h)
 
 calibrateMatrix
   :: Geometry
-  -> Point2
-  -> Point2
-  -> Point2
+  -> [ Point2]
   -> Matrix Float
-calibrateMatrix g@(Geometry w h) 
-                p0@(Point2 x0' y0') 
-                p1@(Point2 x1 _)
-                p2@(Point2 _ y1) = M.fromList
+calibrateMatrix g@(Geometry w h) points = M.fromList
   [ [c0, 0, c1]
   , [ 0,c2, c3]
   , [ 0, 0, 1]
   ]
     where
+      ((Point2 x0' y0'):(Point2 x1' y1'):(Point2 x2' y2'):(Point2 x3' y3'):_) = points
       touchAreaWidth | diff_x > 0.2 = x1 - x0
                      | otherwise = w
       touchAreaHeight | diff_y > 0.2 = y1 - y0
@@ -305,8 +301,10 @@ calibrateMatrix g@(Geometry w h)
          | otherwise = 1 + y / h
       block_w = w / 8
       block_h = h / 8
-      x0 = min x0' x1
-      y0 = min y0' y1
+      x0 = min x0' x2'
+      x1 = max x1' x3'
+      y0 = min y0' y1'
+      y1 = max y2' y3'
       diff_x = (max block_w x0 - min block_w x0) / block_w
       diff_y = (max block_h y0 - min block_h y0) / block_h
       x | diff_x > 0.2 = x0
@@ -327,8 +325,8 @@ guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = do
     when ( mClosestTransform == Nothing) $ 
       throwM ENoTransformMatrixFound
     let Just (matrixNames,transformM) = mClosestTransform
-        (x0:x1:x2:x3:_) = P.map (translatePoint g transformM) points
-        calibrateM = calibrateMatrix g x0 x1 x2
+        tpoints = P.map (translatePoint g transformM) points
+        calibrateM = calibrateMatrix g tpoints
         result' = matProduct calibrateM transformM
         result = matSetEl 1 2 (matGetEl 1 2 calibrateM) 
           $ matSetEl 0 2 (matGetEl 0 2 calibrateM) result'

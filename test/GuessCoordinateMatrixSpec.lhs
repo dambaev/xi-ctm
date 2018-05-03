@@ -110,7 +110,7 @@ which are positive.
 \begin{code}
       (p0:p1:p2:p3:_) = map (translatePoint g (matProduct swapped invert)) points
       Geometry w h = g
-      result = M.fromList [[0.0,-1.5033333,1.2516667],[-1.485,0.0,1.27],[0.0,0.0,1.0]]
+      result = M.fromList [[0.0,-1.5083334,1.2516667],[-1.50625,0.0,1.24875],[0.0,0.0,1.0]]
 \end{code}
 
 
