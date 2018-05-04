@@ -12,6 +12,7 @@ import System.IO as IO
 import Control.Monad.IO.Class
 import Control.Monad.Catch as E
 import Control.Monad.Trans
+import System.Clock as C
 import qualified Data.Text.IO as T
 import System.Process as IO
 
@@ -64,3 +65,11 @@ instance MonadIO m => RunsProcess (PerformanceEnvT m) where
 
 instance MonadIO m => WritesToHandle (PerformanceEnvT m) where
     putStrLn = liftIO . T.putStrLn
+
+instance MonadIO m => ClockReader (PerformanceEnvT m) where
+    getMonotonicClock = do
+      TimeSpec sec nsec <- liftIO $ getTime Boottime
+      return (sec,nsec)
+
+instance MonadIO m => Profiled (PerformanceEnvT m) where
+    profile _ action = action

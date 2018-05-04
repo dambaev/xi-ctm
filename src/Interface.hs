@@ -10,7 +10,7 @@ import Prelude
   , (.)
   , ($)
   )
-
+import Data.Int
 import Control.Monad.Trans
 import Data.Text
 import System.Exit
@@ -59,4 +59,12 @@ class (Monad m) => WritesToHandle m where
       => Text-> m ()
     putStrLn str = lift $ putStrLn str
 
+class (Monad m) => Profiled m where
+    profile:: Text-> m a-> m a
 
+class (Monad m) => ClockReader m where
+    getMonotonicClock :: m (Int64, Int64)
+
+    default getMonotonicClock:: (MonadTrans t, ClockReader m1, m ~t m1)
+      => m (Int64, Int64)
+    getMonotonicClock = lift getMonotonicClock

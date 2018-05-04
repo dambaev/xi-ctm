@@ -35,9 +35,10 @@ realMain
      , ReadsStdin m
      , ReadsEnvironment m
      , WritesToHandle m
+     , Profiled m
      )
   => m ()
-realMain = do
+realMain = profile "realMain" $ do
   debug "running in debug mode"
   input <- getContents
   debug $ "got input: " `T.append` input
@@ -53,9 +54,10 @@ getDisplayGeometry
      , RunsProcess m
      , MonadThrow m
      , Debugged m
+     , Profiled m
      )
   => m Geometry
-getDisplayGeometry = do
+getDisplayGeometry = profile "getDisplayGeometry" $ do
     debug "running xrandr"
     (code, out, err) <- readProcessWithExitCode "xrandr" [] ""
     when (code /= ExitSuccess) $ throwM EXrandrFailed
@@ -64,10 +66,11 @@ getDisplayGeometry = do
 extractDisplayGeometry
   :: ( Monad m
      , Debugged m
+     , Profiled m
      )
   => [Text]
   -> m Geometry
-extractDisplayGeometry lined = do
+extractDisplayGeometry lined = profile "extractDisplayGeometry" $ do
   let resolution = P.foldl' outputFilter T.empty lined 
       w = read $ T.unpack $ T.takeWhile isDigit resolution
       h = read $ T.unpack $ T.takeWhile isDigit $ T.dropWhile (not . isDigit) 
@@ -85,10 +88,11 @@ extractPoints
   :: ( Monad m
      , Debugged m
      , MonadThrow m
+     , Profiled m
      )
   => [Text]
   -> m [Point2]
-extractPoints lined = do
+extractPoints lined = profile "extractPoints" $ do
     let points = P.reverse $ P.foldl' inputFilter [] lined
     debug $ "extracted points) = " `T.append` (T.pack $ show points)
     when (P.length points /= 4) $ throwM ENotEnoughPoints 
@@ -110,11 +114,12 @@ applyCTM
      , MonadThrow m
      , RunsProcess m
      , Debugged m
+     , Profiled m
      )
   => Text
   -> Matrix Float
   -> m ()
-applyCTM name matrix = do
+applyCTM name matrix = profile "applyCTM" $ do
     debug $ "running " `T.append` cmd
     (code,out,err) <- readCreateProcessWithExitCode (shell $ T.unpack cmd)
                       ""
@@ -322,11 +327,12 @@ guessCoordinateMatrixTransform
   :: ( Monad m
      , Debugged m
      , MonadThrow m
+     , Profiled m
      )
   => Geometry
   -> [Point2]
   -> m (Matrix Float)
-guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = do
+guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = profile "guessCoordinateMatrixTransform" $ do
     when ( mClosestTransform == Nothing) $ 
       throwM ENoTransformMatrixFound
     let Just (matrixNames,transformM) = mClosestTransform
@@ -347,11 +353,12 @@ guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = do
 printConfig
   :: ( Monad m
      , WritesToHandle m
+     , Profiled m
      )
   => Text
   -> Matrix Float
   -> m ()
-printConfig name matrix = C.mapM_ putStrLn
+printConfig name matrix = profile "printConfig" $ C.mapM_ putStrLn
   [ "Section \"InputClass\""
   , "\tIdentifier\t \"calibration\""
   , "\tMatchProduct\t \""
@@ -366,12 +373,14 @@ getDeviceName
      , ReadsEnvironment m
      , MonadThrow m
      , Debugged m
+     , Profiled m
      )
   => m Text
-getDeviceName = do
+getDeviceName = profile "getDeviceName" $ do
     mval <- lookupEnv "XICTM_DEVICE"
     case mval of
       Nothing-> throwM EDeviceNameNotFound
       Just some -> do
         debug $ "device name is " `T.append` some
         return some
+

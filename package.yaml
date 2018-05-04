@@ -43,6 +43,7 @@ executables:
     dependencies:
     - xi-ctm
     - process
+    - clock
     default-extensions: Strict, OverloadedStrings
 
 tests:
