@@ -1,8 +1,13 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
 import CTM
 import Performance
+import DebugEnv
+import Interface
 import System.Environment as IO
+import Control.Monad.Trans
+import Control.Monad.Catch
 
 data RunningMode
     = Performance
@@ -10,15 +15,21 @@ data RunningMode
     | Verbose
     | Debug
 
+instance RunsProcess (DebugEnvT (PerformanceEnvT IO ))
+instance MonadThrow (DebugEnvT (PerformanceEnvT IO)) where
+    throwM e = lift $ lift $ throwM e
+instance ReadsStdin (DebugEnvT (PerformanceEnvT IO))
+instance ReadsEnvironment (DebugEnvT (PerformanceEnvT IO))
+
 main :: IO ()
 main = do
     mode <- getRunningMode
-    let runHelper = case mode of
-                      Performance -> runPerformance
+    case mode of
+      Performance -> runPerformance realMain
+      Debug -> runPerformance (runDebugEnv realMain)
 {-                      Profile -> runProfile
                       Verbose -> runVerbose
                       Debug -> runDebug-}
-    runHelper realMain
     
 getRunningMode:: IO RunningMode
 getRunningMode = do

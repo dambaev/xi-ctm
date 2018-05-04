@@ -38,7 +38,9 @@ realMain
      )
   => m ()
 realMain = do
+  debug "running in debug mode"
   input <- getContents
+  debug $ "got input: " `T.append` input
   name <- getDeviceName
   points <- extractPoints $ lines input
   size <- getDisplayGeometry
@@ -54,6 +56,7 @@ getDisplayGeometry
      )
   => m Geometry
 getDisplayGeometry = do
+    debug "running xrandr"
     (code, out, err) <- readProcessWithExitCode "xrandr" [] ""
     when (code /= ExitSuccess) $ throwM EXrandrFailed
     extractDisplayGeometry $ lines out
@@ -87,7 +90,7 @@ extractPoints
   -> m [Point2]
 extractPoints lined = do
     let points = P.reverse $ P.foldl' inputFilter [] lined
-    debug $ "extracted (mname,points) = " `T.append` (T.pack $ show points)
+    debug $ "extracted points) = " `T.append` (T.pack $ show points)
     when (P.length points /= 4) $ throwM ENotEnoughPoints 
     return (P.map (\(x,y)-> Point2 x y) points)
   where
@@ -106,11 +109,13 @@ applyCTM
   :: ( Monad m
      , MonadThrow m
      , RunsProcess m
+     , Debugged m
      )
   => Text
   -> Matrix Float
   -> m ()
 applyCTM name matrix = do
+    debug $ "running " `T.append` cmd
     (code,out,err) <- readCreateProcessWithExitCode (shell $ T.unpack cmd)
                       ""
     when (code /= ExitSuccess) $ throwM EXInputFailed
@@ -331,6 +336,9 @@ guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = do
         result = matSetEl 1 2 (matGetEl 1 2 calibrateM) 
           $ matSetEl 0 2 (matGetEl 0 2 calibrateM) result'
     debug $ "those transformations had been applied " `T.append` (T.pack $ show matrixNames)
+    debug $ "translated points are: " `T.append` (T.pack $ show tpoints)
+    debug $ "calibrate matrix is: " `T.append` (T.pack $ show calibrateM)
+    debug $ "result matrix is: " `T.append` (T.pack $ show result)
     return result
     where
       mClosestTransform = findClosestTransform g points
@@ -357,10 +365,13 @@ getDeviceName
   :: ( Monad m
      , ReadsEnvironment m
      , MonadThrow m
+     , Debugged m
      )
   => m Text
 getDeviceName = do
     mval <- lookupEnv "XICTM_DEVICE"
     case mval of
       Nothing-> throwM EDeviceNameNotFound
-      Just some -> return some
+      Just some -> do
+        debug $ "device name is " `T.append` some
+        return some
