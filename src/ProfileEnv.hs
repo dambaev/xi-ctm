@@ -39,7 +39,7 @@ instance (Monad m, WritesToHandle m, ClockReader m) => Profiled (ProfileEnvT m) 
       (sec,nsec) <- getMonotonicClock
       putStrLn $ "[" `T.append` T.pack ( show sec) 
                   `T.append` "." `T.append` T.pack ( show nsec)
-                  `T.append` " > start: " `T.append` mark
+                  `T.append` "] > start: " `T.append` mark
       ret <- action
       (sec,nsec) <- getMonotonicClock
       putStrLn $ "[" `T.append` T.pack ( show sec) 
