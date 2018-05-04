@@ -59,7 +59,7 @@ getDisplayGeometry
   => m Geometry
 getDisplayGeometry = profile "getDisplayGeometry" $ do
     debug "running xrandr"
-    (code, out, err) <- readProcessWithExitCode "xrandr" [] ""
+    (code, out, err) <- readCreateProcessWithExitCode "xrandr" ""
     when (code /= ExitSuccess) $ throwM EXrandrFailed
     extractDisplayGeometry $ lines out
 
@@ -121,7 +121,7 @@ applyCTM
   -> m ()
 applyCTM name matrix = profile "applyCTM" $ do
     debug $ "running " `T.append` cmd
-    (code,out,err) <- readCreateProcessWithExitCode (shell $ T.unpack cmd)
+    (code,out,err) <- readCreateProcessWithExitCode cmd
                       ""
     when (code /= ExitSuccess) $ throwM EXInputFailed
     where

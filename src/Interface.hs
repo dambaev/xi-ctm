@@ -25,17 +25,12 @@ class (Monad m) => ReadsEnvironment m where
 
 
 class (Monad m) => RunsProcess m where
-    readProcessWithExitCode:: Text-> [Text] -> Text-> m (ExitCode, Text, Text)
-    readCreateProcessWithExitCode:: CreateProcess -> Text-> m (ExitCode, Text, Text)
+    readCreateProcessWithExitCode:: Text -> Text-> m (ExitCode, Text, Text)
 
     default readCreateProcessWithExitCode:: (MonadTrans t, RunsProcess m1, m ~ t m1)
-      => CreateProcess-> Text-> m (ExitCode, Text, Text)
+      => Text-> Text-> m (ExitCode, Text, Text)
     readCreateProcessWithExitCode p input = 
       lift $ readCreateProcessWithExitCode p input
-    default readProcessWithExitCode:: (MonadTrans t, RunsProcess m1, m ~ t m1)
-      => Text-> [Text]-> Text-> m (ExitCode, Text, Text)
-    readProcessWithExitCode cmd args input = 
-      lift $ readProcessWithExitCode cmd args input
 
 
 class (Monad m) => Debugged m where

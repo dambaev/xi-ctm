@@ -11,7 +11,7 @@ import Control.Monad.Catch as E
 
 data World = World
            { wStdin:: Text
-           , wProcess:: Map (Text,[Text]) (ExitCode, Text, Text)
+           , wProcess:: Map Text (ExitCode, Text, Text)
            }
 
 defWorld = World
@@ -22,26 +22,29 @@ defWorld = World
 setStdin:: Text-> World-> World
 setStdin sin w = w{ wStdin = sin}
 
-addProc:: (Text,[Text],ExitCode,Text,Text)-> World-> World
-addProc (cmd,args,code,sout,serr) w@World{wProcess = procMap} = w
-  { wProcess = M.insert (cmd,args) (code,sout,serr) procMap
+addProc:: (Text,ExitCode,Text,Text)-> World-> World
+addProc (cmd,code,sout,serr) w@World{wProcess = procMap} = w
+  { wProcess = M.insert cmd (code,sout,serr) procMap
   }
 
-type TestEnv = ReaderT World IO
+type TestEnv m = ReaderT World m
 
-instance ReadsStdin TestEnv where
+instance Monad m => ReadsStdin (TestEnv m) where
     getContents = asks wStdin
 
-instance Debugged TestEnv where
+instance Monad m => Debugged (TestEnv m) where
     debug _ = return ()
 
-instance RunsProcess TestEnv where
-    readProcessWithExitCode cmd args sin = do
+instance (Monad m) => RunsProcess (TestEnv m) where
+    readCreateProcessWithExitCode cmd sin = do
       procMap <- asks wProcess
-      return $ case M.lookup (cmd,args) procMap of
+      return $ case M.lookup cmd procMap of
         Nothing-> (ExitFailure 1, T.empty, T.empty)
         Just some-> some
+
+instance Monad m => Profiled (TestEnv m) where
+    profile _ action = action
         
-runTestEnv:: World-> TestEnv a-> IO a
+runTestEnv:: World-> TestEnv m a-> m a
 runTestEnv world actions = runReaderT actions world
 

@@ -51,15 +51,9 @@ instance MonadIO m => ReadsStdin (PerformanceEnvT m) where
     getContents = liftIO T.getContents
 
 instance MonadIO m => RunsProcess (PerformanceEnvT m) where
-    readProcessWithExitCode cmd args input = do
-      (code, outS, errS) <- liftIO $ IO.readProcessWithExitCode 
-        (T.unpack cmd)
-        (P.map T.unpack args)
-        (T.unpack input)
-      return (code, T.pack outS, T.pack errS)
     readCreateProcessWithExitCode cmd input = do
       (code, outS, errS) <- liftIO $ IO.readCreateProcessWithExitCode 
-        cmd
+        (shell $ T.unpack cmd)
         (T.unpack input)
       return (code, T.pack outS, T.pack errS)
 
