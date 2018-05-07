@@ -23,6 +23,11 @@ data EXInputFailed = EXInputFailed
       deriving Show
 instance Exception EXInputFailed
 
+{-@ type PosF = {v:Float | v > 0.0 } @-}
+{-@ type Nat = {v:Int | v >= 0 } @-}
+{-@ type Pos = {v:Nat | v > 0 } @-}
+
+{-@ data Geometry = Geometry {w::PosF, h::PosF } @-}
 data Geometry = Geometry Float Float
 
 data Point2 = Point2 Float Float
@@ -30,9 +35,6 @@ data Point2 = Point2 Float Float
 
 data Vector2 = Vector2 Float Float
              deriving Show
-
-{-@ type Nat = {v:Int | v >= 0} @-}
-{-@ type Pos = {v:Nat | v > 0 } @-}
 
 {- type VectorN a N = { v:Vector a, N:Pos | vlen v == n} -}
 {-@ type VectorN a N = {v:Vector a | vlen v = N} @-}

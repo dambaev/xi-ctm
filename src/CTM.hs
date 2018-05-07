@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module CTM where
 
 import qualified Data.String as S
