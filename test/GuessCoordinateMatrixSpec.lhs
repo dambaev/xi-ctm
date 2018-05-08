@@ -110,9 +110,24 @@ which are positive.
 \begin{code}
       (p0:p1:p2:p3:_) = map (translatePoint g (matProduct swapped invert)) points
       Geometry w h = g
-      result = M.fromList [[0.0,-1.5083334,1.2516667],[-1.50625,0.0,1.24875],[0.0,0.0,1.0]]
+      result = M.fromList [[0.0,-1.4754097,1.2516667],[-1.4814814,0.0,1.24875],[0.0,0.0,1.0]]
 \end{code}
 
+
+2.3. swap, invert and scale one more time
+
+\begin{code}
+test3 = it "swap, invert and scale one more time" $ do
+  let matrix = runTestEnv defWorld $ guessCoordinateMatrixTransform g points
+  matrix `shouldReturn` result 
+    where
+      points = [Point2 586 451, Point2 589 147, Point2 217 448, Point2 199 145]
+      result = M.fromList
+        [ [ 0, -1.4705882,1.2483333]
+        , [-1.5384616,0.0,1.2637501]
+        , [ 0, 0, 1]
+        ]
+\end{code}
 
 `spec` is the main function here. It contains list of subfunctions, that
 are contain actuall test code.
@@ -121,6 +136,7 @@ are contain actuall test code.
 spec = describe "guessCoordinateTransformationMatrix" $ do
   test1
   test2
+  test3
 
 \end{code}
 
