@@ -287,41 +287,35 @@ calibrateMatrix
   :: Geometry
   -> [ Point2]
   -> Matrix Float
-calibrateMatrix g@(Geometry w h) points = M.fromList
+calibrateMatrix g@(Geometry w' h') points = M.fromList
   [ [c0, 0, c1]
   , [ 0,c2, c3]
   , [ 0, 0, 1]
   ]
     where
       ((Point2 x0' y0'):(Point2 x1' y1'):(Point2 x2' y2'):(Point2 x3' y3'):_) = points
-      touchAreaWidth | diff_x > 0.2 = x1 - x0
-                     | otherwise = w
-      touchAreaHeight | diff_y > 0.2 = y1 - y0
-                      | otherwise = h
-      c0 | touchAreaWidth < w = 1 + touchAreaWidth / w
+      touchAreaWidth = x1 - x0
+      touchAreaHeight = y1 - y0
+      c0 | touchAreaWidth < w = w / touchAreaWidth
          | touchAreaWidth == w = 1
-         | otherwise = 1 - touchAreaWidth / w
-      c1 | x == 0 = 0
-         | touchAreaWidth > w = x / w
-         | otherwise = 1 + x / w
-      c2 | touchAreaHeight < h = 1 + touchAreaHeight / h
+         | otherwise = touchAreaWidth / w
+      c1 | diff_x < 0.2 = 0
+         | otherwise = 1 + x0 / w'
+      c2 | touchAreaHeight < h = h / touchAreaHeight
          | touchAreaHeight == h = 1
-         | otherwise = 1 - touchAreaHeight / h
-      c3 | y == 0 = 0
-         | touchAreaHeight > h = y / h
-         | otherwise = 1 + y / h
-      block_w = w / 8
-      block_h = h / 8
+         | otherwise = touchAreaHeight / h
+      c3 | diff_y < 0.2 = 0
+         | otherwise = 1 + y0 / h'
+      block_w = w' / 8
+      block_h = h' / 8
+      w = w' - block_w * 2
+      h = h' - block_h * 2
       x0 = min x0' x2'
       x1 = max x1' x3'
       y0 = min y0' y1'
       y1 = max y2' y3'
       diff_x = (max block_w x0 - min block_w x0) / block_w
       diff_y = (max block_h y0 - min block_h y0) / block_h
-      x | diff_x > 0.2 = x0
-        | otherwise = 0
-      y | diff_y > 0.2 = y0
-        | otherwise = 0
 
 
 guessCoordinateMatrixTransform
