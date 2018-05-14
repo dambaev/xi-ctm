@@ -27,6 +27,7 @@ import Interface
 import System.Process (shell)
 import Vector as V
 import Matrix as M
+import Debug.Trace as D
 
 realMain
   :: ( Monad m
@@ -92,7 +93,7 @@ extractPoints
      , Profiled m
      )
   => [Text]
-  -> m [Point2]
+  -> m [Point2 Float]
 extractPoints lined = profile "extractPoints" $ do
     let points = P.reverse $ P.foldl' inputFilter [] lined
     debug $ "extracted points) = " `T.append` (T.pack $ show points)
@@ -118,7 +119,7 @@ applyCTM
      , Profiled m
      )
   => Text
-  -> Matrix Float
+  -> Matrix NFloat
   -> m ()
 applyCTM name matrix = profile "applyCTM" $ do
     debug $ "running " `T.append` cmd
@@ -133,39 +134,40 @@ applyCTM name matrix = profile "applyCTM" $ do
 
 
 matrixToXinputProp
-  :: Matrix Float
+  :: Matrix NFloat
   -> Text
 matrixToXinputProp (M _ _ els) = (T.pack . P.intercalate " " . P.map (P.intercalate " " . P.map show . V.toList) . V.toList) els
 
 
+normal:: Matrix NFloat
 normal = M.fromList
   [ [ 1.0, 0.0, 0.0]
   , [ 0.0, 1.0, 0.0]
   , [ 0.0, 0.0, 1.0]
   ]
 
-swapped :: Matrix Float
+swapped :: Matrix NFloat
 swapped = M.fromList
   [ [ 0.0, 1.0, 0.0]
   , [ 1.0, 0.0, 0.0]
   , [ 0.0, 0.0, 1.0]
   ]
 
-leftRotate :: Matrix Float
+leftRotate :: Matrix NFloat
 leftRotate = M.fromList
   [ [ 0.0,-1.0, 1.0]
   , [ 1.0, 0.0, 0.0]
   , [ 0.0, 0.0, 1.0]
   ]
 
-rightRotate:: Matrix Float
+rightRotate:: Matrix NFloat
 rightRotate = M.fromList
   [ [ 0.0, 1.0, 0.0]
   , [-1.0, 0.0, 1.0]
   , [ 0.0, 0.0, 1.0]
   ]
 
-invert:: Matrix Float
+invert:: Matrix NFloat
 invert = M.fromList
   [ [-1.0, 0.0, 1.0]
   , [ 0.0,-1.0, 1.0]
@@ -173,7 +175,7 @@ invert = M.fromList
   ]
 
 
-matrixes:: [(Text, Matrix Float)]
+matrixes:: [(Text, Matrix NFloat)]
 matrixes = 
     [ ( "normal"
       , normal 
@@ -190,17 +192,12 @@ matrixes =
     ]
 
 isCorrectOrientation
-  :: Geometry
-  -> [Point2]
+  :: [Point2 NFloat]
+  -> [Point2 NFloat]
   -> Bool
-isCorrectOrientation g@(Geometry w h) points@(p0:p1:p2:p3:_) = 
+isCorrectOrientation corners points@(p0:p1:p2:p3:_) = 
     P.all helper cornersPointsLengths
     where
-      topLeft = Point2 0 0
-      topRight = Point2 w 0
-      bottomLeft = Point2 0 h
-      bottomRight = Point2 w h
-      corners = [topLeft, topRight, bottomLeft, bottomRight]
       cornersPoints = P.zipWith (,) corners points
       cornersPointsLengths = P.map (\(l,r)-> (l,r,V.lengthP l r)) cornersPoints
       helper (corner,point,len) = 
@@ -209,24 +206,18 @@ isCorrectOrientation g@(Geometry w h) points@(p0:p1:p2:p3:_) =
           restPoints = P.filter (/=point) points
 
 getCornersDiffs
-  :: Geometry
-  -> [Point2]
-  -> [Float]
-getCornersDiffs g@(Geometry w h) points = P.map (\(l,r)-> V.lengthP l r) $  P.zipWith (,) corners points
-    where
-      topLeft = Point2 0 0
-      topRight = Point2 w 0
-      bottomLeft = Point2 0 h
-      bottomRight = Point2 w h
-      corners = [ topLeft, topRight, bottomLeft, bottomRight ]
+  :: [Point2 NFloat]
+  -> [Point2 NFloat]
+  -> [NFloat]
+getCornersDiffs corners points = P.map (\(l,r)-> V.lengthP l r) $  P.zipWith (,) corners points
 
-findClosestTransform
-  :: Geometry
-  -> [Point2]
+findClosestRotateMatrix
+  :: [Point2 NFloat]
+  -> [Point2 NFloat]
   -> Maybe ( [Text]
-           , Matrix Float
+           , Matrix NFloat
            )
-findClosestTransform g@(Geometry w h) points = 
+findClosestRotateMatrix corners points = 
     case findTheBestOption totalOptions of
       [] -> Nothing
       ((names, mat):_) -> Just (names, mat)
@@ -241,29 +232,26 @@ findClosestTransform g@(Geometry w h) points =
       | otherwise = [(name, mat)]
       where
         diffs = P.zipWith (,) cdiff diff
-        cdiff = getCornersDiffs g ctpoints
-        diff = getCornersDiffs g tpoints
-        ctpoints = P.map (translatePoint g cmat) points
-        tpoints = P.map (translatePoint g mat) points
+        cdiff = getCornersDiffs corners ctpoints
+        diff = getCornersDiffs corners tpoints
+        ctpoints = P.map (translatePoint cmat) points
+        tpoints = P.map (translatePoint mat) points
     check names matrix = findTheBestOption correctOrientation
       where
         options = P.map (\(name,mat)-> (name:names, matProduct matrix mat)) matrixes
-        correctOrientation = P.filter (\( _, mat)-> isCorrectOrientation g (P.map (translatePoint g mat) points)) options
+        correctOrientation = P.filter (\( _, mat)-> isCorrectOrientation corners (P.map (translatePoint mat) points)) options
 
 translatePoint
-  :: Geometry
-  -> Matrix Float
-  -> Point2
-  -> Point2
-translatePoint g@(Geometry w h) m p = scalePoint g tnpoint
+  :: Matrix NFloat
+  -> Point2 NFloat
+  -> Point2 NFloat
+translatePoint m (Point2 nx ny) = matToPoint $ matProduct m pointM
   where
-    (Point2 nx ny) = normalizePoint g p
     pointM = M.fromList [[nx], [ny], [1]]
-    tnpoint = matToPoint $ matProduct m pointM
 
 matToPoint
-  :: Matrix Float
-  -> Point2
+  :: Matrix a
+  -> Point2 a
 matToPoint (M r c els)
   | r /= 3 || c /= 1 = error "matToPoint only can be applied to 3x1"
   | otherwise = Point2 x y
@@ -271,52 +259,57 @@ matToPoint (M r c els)
       x = V.head $ els V.! 0
       y = V.head $ els V.! 1
 
+pointToMat
+  :: Num a
+  => Point2 a
+  -> Matrix a
+pointToMat (Point2 x y) = M.fromList [[x],[y],[1]]
+
 normalizePoint
   :: Geometry
-  -> Point2
-  -> Point2
-normalizePoint (Geometry w h) (Point2 x y) = Point2 (x/w) (y/h)
+  -> Point2 Float
+  -> Point2 NFloat
+normalizePoint (Geometry w h) (Point2 x y) = Point2 (NFloat $ x/w) (NFloat $ y/h)
 
 scalePoint
   :: Geometry
-  -> Point2
-  -> Point2
-scalePoint (Geometry w h) (Point2 x y) = Point2 (x*w) (y*h)
+  -> Point2 NFloat
+  -> Point2 Float
+scalePoint (Geometry w h) (Point2 (NFloat x) (NFloat y)) = Point2 (x*w) (y*h)
 
-calibrateMatrix
-  :: Geometry
-  -> [ Point2]
-  -> Matrix Float
-calibrateMatrix g@(Geometry w' h') points = M.fromList
+calcScaleMatrix
+  :: [ Point2 NFloat] -- desired points
+  -> [ Point2 NFloat]
+  -> Matrix NFloat
+calcScaleMatrix dps points = M.fromList
   [ [c0, 0, c1]
   , [ 0,c2, c3]
   , [ 0, 0, 1]
   ]
     where
-      ((Point2 x0' y0'):(Point2 x1' y1'):(Point2 x2' y2'):(Point2 x3' y3'):_) = points
-      touchAreaWidth = x1 - x0
-      touchAreaHeight = y1 - y0
-      c0 | touchAreaWidth < w = w / touchAreaWidth
-         | touchAreaWidth == w = 1
-         | otherwise = touchAreaWidth / w
-      c1 | diff_x < 0.2 = 0
-         | otherwise = 1 + x0 / w'
-      c2 | touchAreaHeight < h = h / touchAreaHeight
-         | touchAreaHeight == h = 1
-         | otherwise = touchAreaHeight / h
-      c3 | diff_y < 0.2 = 0
-         | otherwise = 1 + y0 / h'
-      block_w = w' / 8
-      block_h = h' / 8
-      w = w' - block_w * 2
-      h = h' - block_h * 2
+      Point2 x0' y0':Point2 x1' y1':Point2 x2' y2':Point2 x3' y3':_ = points
+      Point2 dp0x dp0y:_:_:Point2 dp3x dp3y:_ = dps
+      tawi = dp3x - dp0x
+      tahi = dp3y - dp0y
+      tawa = x1 - x0
+      taha = y1 - y0
       x0 = min x0' x2'
       x1 = max x1' x3'
       y0 = min y0' y1'
       y1 = max y2' y3'
-      diff_x = (max block_w x0 - min block_w x0) / block_w
-      diff_y = (max block_h y0 - min block_h y0) / block_h
-
+      c0 = tawi / tawa
+      c2 = tahi / taha
+      Point2 c1 c3 = matToPoint $ matProduct 
+        ( M.fromList
+        [ [ negate c0, 0, dp0x]
+        , [ 0, negate c2, dp0y]
+        , [ 0, 0, 1]
+        ])
+        ( M.fromList
+        [ [x0]
+        , [y0]
+        , [1]
+        ])
 
 guessCoordinateMatrixTransform
   :: ( Monad m
@@ -325,24 +318,29 @@ guessCoordinateMatrixTransform
      , Profiled m
      )
   => Geometry
-  -> [Point2]
-  -> m (Matrix Float)
+  -> [Point2 Float]
+  -> m (Matrix NFloat)
 guessCoordinateMatrixTransform g@(Geometry w h) points@(p0:p1:p2:p3:_) = profile "guessCoordinateMatrixTransform" $ do
     when ( mClosestTransform == Nothing) $ 
       throwM ENoTransformMatrixFound
     let Just (matrixNames,transformM) = mClosestTransform
-        tpoints = P.map (translatePoint g transformM) points
-        calibrateM = calibrateMatrix g tpoints
-        result' = matProduct calibrateM transformM
-        result = matSetEl 1 2 (matGetEl 1 2 calibrateM) 
-          $ matSetEl 0 2 (matGetEl 0 2 calibrateM) result'
+        tnpoints = P.map (translatePoint transformM) npoints
+        scaleM = calcScaleMatrix corners tnpoints
+        result = matProduct scaleM transformM
+        rnpoints = P.map (matToPoint . matProduct result . pointToMat) npoints
+        rspoints = P.map (scalePoint g) rnpoints
     debug $ "those transformations had been applied " `T.append` (T.pack $ show matrixNames)
-    debug $ "translated points are: " `T.append` (T.pack $ show tpoints)
-    debug $ "calibrate matrix is: " `T.append` (T.pack $ show calibrateM)
-    debug $ "result matrix is: " `T.append` (T.pack $ show result)
+    debug $ "translated points are: " `T.append` (T.pack $ show tnpoints)
+    debug $ "scale matrix is: " `T.append` (T.pack $ show scaleM)
+    debug $ "calibrate matrix is: " `T.append` (T.pack $ show result)
+    debug $ "result points after applying calibration: " `T.append` (T.pack $ show rspoints)
     return result
     where
-      mClosestTransform = findClosestTransform g points
+      mClosestTransform = findClosestRotateMatrix corners npoints
+      npoints = P.map (normalizePoint g) points
+      corners = [ Point2 0.125 0.125, Point2 0.875 0.125
+                , Point2 0.125 0.875, Point2 0.875 0.875
+                ]
       
 
 printConfig
@@ -351,7 +349,7 @@ printConfig
      , Profiled m
      )
   => Text
-  -> Matrix Float
+  -> Matrix NFloat
   -> m ()
 printConfig name matrix = profile "printConfig" $ C.mapM_ putStrLn
   [ "Section \"InputClass\""

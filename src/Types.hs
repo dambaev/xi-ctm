@@ -30,11 +30,41 @@ instance Exception EXInputFailed
 {-@ data Geometry = Geometry {w::PosF, h::PosF } @-}
 data Geometry = Geometry Float Float
 
-data Point2 = Point2 Float Float
+newtype NFloat = NFloat Float
+                 deriving (Eq,Ord)
+instance Show NFloat where
+    show (NFloat v) = show v
+instance Num NFloat where
+  (+) (NFloat a) (NFloat b) = NFloat (a + b)
+  (*) (NFloat a) (NFloat b) = NFloat (a * b)
+  abs (NFloat a) = NFloat (abs a)
+  signum (NFloat a) = NFloat (signum a)
+  fromInteger a = NFloat (fromInteger a)
+  negate (NFloat a) = NFloat (negate a)
+
+instance Fractional NFloat where
+    fromRational a = NFloat (fromRational a)
+    (/) (NFloat a) (NFloat b) = NFloat (a/b)
+instance Floating NFloat where
+    pi = NFloat pi
+    exp (NFloat a) = NFloat (exp a)
+    log (NFloat a) = NFloat (log a)
+    sin (NFloat a) = NFloat (sin a)
+    cos (NFloat a) = NFloat (cos a)
+    acos (NFloat a) = NFloat (acos a)
+    asin (NFloat a) = NFloat (asin a)
+    atan (NFloat a) = NFloat (atan a)
+    sinh (NFloat a) = NFloat (sinh a)
+    cosh (NFloat a) = NFloat (cosh a)
+    asinh (NFloat a) = NFloat (asinh a)
+    acosh (NFloat a) = NFloat (acosh a)
+    atanh (NFloat a) = NFloat (atanh a)
+
+data Point2 a = Point2 a a
             deriving (Show,Eq)
 
-data Vector2 = Vector2 Float Float
-             deriving Show
+data Vector2 a = Vector2 a a
+             deriving (Eq,Show)
 
 {- type VectorN a N = { v:Vector a, N:Pos | vlen v == n} -}
 {-@ type VectorN a N = {v:Vector a | vlen v = N} @-}
