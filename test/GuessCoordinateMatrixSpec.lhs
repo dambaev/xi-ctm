@@ -147,6 +147,24 @@ test3 = it "swap, invert and scale one more time" $ do
         ]
 \end{code}
 
+2.4 swapm invert and scale
+
+This is mocked example, that has precise clicks and suppose to have scale on
+both axes to be 1.5 and both coordinates offset of 0.125:
+
+\begin{code}
+test4 = it "mocked invert, swap and scale" $ do
+  let matrix = runTestEnv defWorld $ guessCoordinateMatrixTransform g points
+  matrix `shouldReturn` result
+    where
+      points = [Point2 800 600, Point2 800 300, Point2 400 600, Point2 400 300]
+      result = M.fromList
+        [ [ 0.0, -1.5, 1.625]
+        , [ -1.5, 0.0, 1.625]
+        , [ 0, 0, 1]
+        ]
+\end{code}
+
 `spec` is the main function here. It contains list of subfunctions, that
 are contain actuall test code.
 
@@ -155,5 +173,6 @@ spec = describe "guessCoordinateTransformationMatrix" $ do
   test1
   test2
   test3
+  test4
 
 \end{code}
