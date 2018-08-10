@@ -27,10 +27,7 @@ source-repository head
 library
   hs-source-dirs:
       src
-  if impl(ghc >= 8.0.1)
-    default-extensions: Strict, OverloadedStrings
-  else 
-    default-exceptions: OverloadedStrings
+  default-extensions: Strict, OverloadedStrings
   build-depends:
       base
     , exceptions
@@ -55,10 +52,7 @@ executable xi-ctm
   main-is: Main.hs
   hs-source-dirs:
       app
-  if impl(ghc >= 8.0.1)
-    default-extensions: Strict, OverloadedStrings
-  else 
-    default-exceptions: OverloadedStrings
+  default-extensions: Strict, OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base
@@ -78,10 +72,7 @@ test-suite xi-ctm-test
   main-is: Main.hs
   hs-source-dirs:
       test
-  if impl(ghc >= 8.0.1)
-    default-extensions: Strict, OverloadedStrings
-  else 
-    default-exceptions: OverloadedStrings
+  default-extensions: Strict, OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base
