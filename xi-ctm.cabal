@@ -29,7 +29,7 @@ library
       src
   default-extensions: Strict, OverloadedStrings
   build-depends:
-      base >=4.7 && <5
+      base
     , exceptions
     , mtl
     , process
@@ -55,7 +55,7 @@ executable xi-ctm
   default-extensions: Strict, OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      base
     , clock
     , exceptions
     , mtl
@@ -75,7 +75,7 @@ test-suite xi-ctm-test
   default-extensions: Strict, OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      base
     , containers
     , exceptions
     , hspec
