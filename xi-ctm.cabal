@@ -1,0 +1,92 @@
+-- This file has been generated from package.yaml by hpack version 0.28.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: f7a962a638b0a213d37cb1ee12e5d23d7abe16f09773e9245c346286f951674b
+
+name:           xi-ctm
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/xi-ctm#readme>
+homepage:       https://github.com/githubuser/xi-ctm#readme
+bug-reports:    https://github.com/githubuser/xi-ctm/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2018 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+extra-source-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/xi-ctm
+
+library
+  hs-source-dirs:
+      src
+  default-extensions: Strict, OverloadedStrings
+  build-depends:
+      base >=4.7 && <5
+    , exceptions
+    , mtl
+    , process
+    , text
+    , vector
+  exposed-modules:
+      CTM
+      DebugEnv
+      Interface
+      Lib
+      Matrix
+      ProfileEnv
+      Types
+      Vector
+  other-modules:
+      Paths_xi_ctm
+  default-language: Haskell2010
+
+executable xi-ctm
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  default-extensions: Strict, OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , clock
+    , exceptions
+    , mtl
+    , process
+    , text
+    , xi-ctm
+  other-modules:
+      Performance
+      Paths_xi_ctm
+  default-language: Haskell2010
+
+test-suite xi-ctm-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test
+  default-extensions: Strict, OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , exceptions
+    , hspec
+    , mtl
+    , process
+    , text
+    , xi-ctm
+  other-modules:
+      CTMSpec
+      GuessCoordinateMatrixSpec
+      Spec
+      TestEnv
+      Paths_xi_ctm
+  default-language: Haskell2010
