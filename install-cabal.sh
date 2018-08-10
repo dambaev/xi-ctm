@@ -11,3 +11,6 @@ cabal test
 # now actually install xi-ctm
 cp .cabal-sandbox/bin/xi-ctm /usr/local/bin/
 
+# now cleanup everything
+rm -rf ~/.cabal
+rm -rf ./.cabal-sandbox
