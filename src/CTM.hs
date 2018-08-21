@@ -174,6 +174,24 @@ invert = M.fromList
   , [ 0.0, 0.0, 1.0]
   ]
 
+-- this matrix can handle inversion of X-only axis
+xInvert:: Matrix NFloat
+xInvert = M.fromList
+  [ [-1.0, 0.0, 1.0]
+  , [ 0.0, 1.0, 0.0]
+  , [ 0.0, 0.0, 1.0]
+  ]
+
+-- this matrix can handle inversion of Y-only axis
+yInvert:: Matrix NFloat
+yInvert = M.fromList
+  [ [ 1.0, 0.0, 0.0]
+  , [ 0.0,-1.0, 1.0]
+  , [ 0.0, 0.0, 1.0]
+  ]
+
+
+
 
 matrixes:: [(Text, Matrix NFloat)]
 matrixes = 
@@ -188,6 +206,12 @@ matrixes =
       )
     , ( "swapped"
       , swapped
+      )
+    , ( "X-inverted"
+      , xInvert
+      )
+    , ( "Y-inverted"
+      , yInvert
       )
     ]
 

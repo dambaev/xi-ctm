@@ -165,6 +165,30 @@ test4 = it "mocked invert, swap and scale" $ do
         ]
 \end{code}
 
+2.5 invert and X invert
+
+This is a true data from one of devices, that has Y-axis inversion
+TODO: currently, xi-ctm will detect it as "X-invertion of XY invertetion". It 
+should detect just Y-inversion. Investigate and fix
+
+DEBUG: Adding click 0 (X=125, Y=493)
+DEBUG: Adding click 1 (X=685, Y=493)
+DEBUG: Adding click 2 (X=123, Y=107)
+DEBUG: Adding click 3 (X=684, Y=87)
+
+\begin{code}
+test5 = it "" $ do
+  let matrix = runTestEnv defWorld $ guessCoordinateMatrixTransform g points
+  matrix `shouldReturn` result
+    where
+      points = [ Point2 125 493, Point2 685 493, Point2 123 107, Point2 684 87]
+      result = M.fromList
+        [ [ 1.0676156, 0.0, -0.0391459]
+        , [ 0.0, -1.1083744, 1.0357143]
+        , [ 0.0, 0.0, 1.0]
+        ]
+\end{code}
+
 `spec` is the main function here. It contains list of subfunctions, that
 are contain actuall test code.
 
@@ -174,5 +198,6 @@ spec = describe "guessCoordinateTransformationMatrix" $ do
   test2
   test3
   test4
+  test5
 
 \end{code}
